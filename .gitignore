@@ -2,3 +2,4 @@ bazel-testlogs
 bazel-out
 bazel-bin
 bazel-agent
+cmake-build-debug

@@ -4,18 +4,22 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+        
+
+        
         {
-            "name": "main",
+            "name": "server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/Users/tuffy/Desktop/agent/bazel-bin/main",
+            "program": "${workspaceFolder}/bazel-bin/server",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "Compile"
+            "preLaunchTask": "compile_server"
         }
     ]
 }
