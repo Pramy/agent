@@ -12,3 +12,5 @@ add_executable(server server.cpp socketutil.cpp socketutil.h)
 add_executable(client main.cpp socketutil.cpp socketutil.h)
 add_executable(moo moo.cpp socketutil.cpp socketutil.h)
 add_executable(read read.cpp socketutil.cpp socketutil.h)
+
+add_definitions("-v -DDEBUG")

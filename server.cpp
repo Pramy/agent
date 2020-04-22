@@ -1,33 +1,35 @@
 #include <iostream>
 #include <string>
 #include <socketutil.h>
-#include <unistd.h>
 
+int main(int argh, char * argv[]) {
 
-int main()
-{
-    int sock = SocketUtil::create_socket("0.0.0.0", 8081, [](int sock, addrinfo &result) -> bool {
-        bind(sock, result.ai_addr, static_cast<socklen_t>(result.ai_addrlen));
-        listen(sock, 100);
-        return true;
-    });
-    int size = 1024;
-    char read_buff[size];
-    while(true)
-    {
-        sockaddr_in remoteAddr{};
-        socklen_t len;
-        int acsock = accept(sock, (sockaddr*)(&remoteAddr), &len);
-        if(acsock > 0)
-        {
+//  SocketUtil::AddAfterCreateSocket([](const SocketUtil::SocketFD &sock){
+#ifdef DEBUG
+    PRINT("set time out");
+#endif
+//    timeval tv{};
+//    tv.tv_sec = 1;
+//    tv.tv_usec = 0;
+//    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+//  });
 
-            int len_r;
-            while ((len_r = ::read(acsock, read_buff, size)) > 0) {
-                std::cout<< std::string(read_buff,len_r) << std::endl;
-                write(acsock, read_buff, len_r);
-            }
-            close(acsock);
-        }
+  using socket_fd = SocketUtil::SocketFD;
+  socket_fd accept_socket = SocketUtil::CreateServer("0.0.0.0", 8081);
+  while(true) {
+    sockaddr_in remote_addr{};
+    socklen_t len;
+    socket_fd client_fd = SocketUtil::Accept(accept_socket, remote_addr, len);
+    if(client_fd > 0) {
+
+      std::string msg = SocketUtil::Read(client_fd);
+      socket_fd remote_fd = SocketUtil::CreateClient("www.baidu.com", 80);
+
+      SocketUtil::Write(remote_fd, msg);
+      std::string rec = SocketUtil::Read(remote_fd);
+      SocketUtil::Write(client_fd, rec);
+      SocketUtil::Close(client_fd);
     }
-    return 0;
+  }
+  return 0;
 }
