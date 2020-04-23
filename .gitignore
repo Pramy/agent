@@ -2,3 +2,7 @@ bazel-testlogs
 bazel-out
 bazel-bin
 bazel-agent
+cmake-build-debug
+.vscode
+.idea
+CMakeLists.txt
