@@ -3,16 +3,16 @@
 
 
 cc_library(
-  name = "socket_util",
-  srcs = ["socketutil.cpp"],
-  hdrs = ["socketutil.h"],
+  name = "base_server",
+  srcs = ["base_server.cpp"],
+  hdrs = ["base_server.h"],
 )
 
 cc_binary(
-    name = "server",
+    name = "bio_server",
     srcs = ["server.cpp"],
     deps = [
-      ":socket_util"
+      ":base_server"
     ],
     copts = [
    "--std=c++11",
