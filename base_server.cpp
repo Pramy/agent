@@ -2,34 +2,13 @@
 // Created by tuffy on 2020/4/23.
 //
 
-//
-// Created by tuffy on 2020/4/21.
-//
 #include "base_server.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
+#include <cstring>
 
 #define MAX_BUF_SIZE 1024
-
-template <class T>
-inline
-void RunTasks(const std::vector<T> &tasks, BaseServer::SocketFD sock){
-  for (const auto &item : tasks) {
-    item(sock);
-  }
-}
-
-
-template <class T>
-inline
-void RunTasks(const std::vector<T> &tasks,
-              BaseServer::SocketFD sock,
-              const std::string &msg){
-  for (const auto &item : tasks) {
-    item(sock, msg);
-  }
-}
 
 BaseServer::SocketFD
 BaseServer::CreateServer(const std::string &host, const int &port){
@@ -79,7 +58,7 @@ BaseServer::CreateSocket(const std::string &host,
     if (sock == ERROR_SOCKET){
       continue;
     }
-    RunTasks(after_create_tasks, sock);
+    RunAllTasks(after_create_tasks, sock);
     if (fn(sock, *result)) {
       freeaddrinfo(result);
       return sock;
@@ -91,16 +70,16 @@ BaseServer::CreateSocket(const std::string &host,
 }
 
 ssize_t BaseServer::Write(SocketFD socket_fd, const std::string &msg) {
-  RunTasks(before_write_tasks, socket_fd, msg);
+  RunAllTasks(before_write_tasks, socket_fd, msg);
   if (!msg.empty()){
     ::send(socket_fd, msg.c_str(), msg.size(), 0);
   }
-  RunTasks(after_write_tasks, socket_fd, msg);
+  RunAllTasks(after_write_tasks, socket_fd, msg);
   return 0;
 }
 
 std::string BaseServer::Read(SocketFD socket_fd) {
-  RunTasks(before_read_tasks, socket_fd);
+  RunAllTasks(before_read_tasks, socket_fd);
   char buf[MAX_BUF_SIZE];
   ssize_t len = 0;
   std::string res;
@@ -108,13 +87,13 @@ std::string BaseServer::Read(SocketFD socket_fd) {
   while ((len = (::recv(socket_fd, buf, MAX_BUF_SIZE,0))) > 0) {
     res.append(buf,len);
   }
-  RunTasks(after_read_tasks, socket_fd, res);
+  RunAllTasks(after_read_tasks, socket_fd, res);
   return res;
 }
 BaseServer::SocketFD BaseServer::Accept(SocketFD sock, sockaddr_in &remote_addr, socklen_t &len) {
   SocketFD client_fd = ::accept(sock, reinterpret_cast<sockaddr*>(&remote_addr), &len);
   if (client_fd > 0) {
-    RunTasks(after_accept_tasks, client_fd);
+    RunAllTasks(after_accept_tasks, client_fd);
   }
   return client_fd;
 }
@@ -149,4 +128,10 @@ void BaseServer::AddBeforeWriteTasks(const BaseServer::SocketMsgFun &fn) {
 
 void BaseServer::AddAfterWriteTasks(const BaseServer::SocketMsgFun &fn) {
   after_write_tasks.push_back(fn);
+}
+template <typename T, typename... Args>
+void BaseServer::RunAllTasks(const std::vector<T> &tasks, Args... args) {
+  for (const auto &item : tasks) {
+    item(args...);
+  }
 }

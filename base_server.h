@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <functional>
 
 class BaseServer{
 
@@ -28,8 +29,6 @@ public:
   BaseServer(): after_create_tasks(), after_accept_tasks(), after_connect_tasks(),
                 before_read_tasks(), after_read_tasks(), before_write_tasks(),
                 after_write_tasks() {};
-
-  virtual ~BaseServer()= default;
 
   virtual SocketFD CreateServer(const std::string &host, const int &port);
 
@@ -57,7 +56,8 @@ public:
 
   void AddAfterWriteTasks(const SocketMsgFun &fn);
 
-private:
+  template <typename T, typename... Args>
+  void RunAllTasks(const std::vector<T>& tasks, Args... args);
 
   virtual bool Connect(SocketFD sock, const addrinfo &addr);
 

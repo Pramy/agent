@@ -1,22 +1,54 @@
-
 # https://docs.bazel.build/versions/master/be/c-cpp.html#cc_binary
 
-
 cc_library(
-  name = "base_server",
-  srcs = ["base_server.cpp"],
-  hdrs = ["base_server.h"],
+    name = "base_server",
+    srcs = ["base_server.cpp"],
+    hdrs = ["base_server.h"],
 )
 
 cc_binary(
     name = "bio_server",
     srcs = ["server.cpp"],
-    deps = [
-      ":base_server"
-    ],
     copts = [
-   "--std=c++11",
-  ],
+        "--std=c++11",
+    ],
+    deps = [
+        ":base_server",
+    ],
+)
+
+cc_library(
+    name = "common",
+    srcs = [
+        "select/buffer.cpp",
+        "select/context.cpp",
+    ],
+    hdrs = [
+        "select/buffer.h",
+        "select/context.h",
+    ],
+)
+
+cc_library(
+    name = "select_single_server",
+    srcs = ["select/select_server.cpp"],
+    hdrs = ["select/select_server.h"],
+    copts = [],
+    deps = [
+        ":base_server",
+        ":common",
+    ],
+)
+
+cc_binary(
+    name = "select_single_run",
+    srcs = ["select.cpp"],
+    copts = [
+        "--std=c++11",
+    ],
+    deps = [
+        ":select_single_server",
+    ],
 )
 # https://docs.bazel.build/versions/master/be/c-cpp.html#cc_binary
 # cc_binary(

@@ -5,4 +5,5 @@ bazel-agent
 cmake-build-debug
 .vscode
 .idea
+.clwb
 CMakeLists.txt
