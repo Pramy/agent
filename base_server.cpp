@@ -12,14 +12,16 @@
 
 BaseServer::SocketFD
 BaseServer::CreateServer(const std::string &host, const int &port){
-  using namespace std::placeholders;
-  return BaseServer::CreateSocket(host, port, std::bind(&BaseServer::BindAndListen,*this,_1,_2));
+  return CreateSocket(host, port, [this](SocketFD sock, const addrinfo& addr) -> bool{
+    return this->BindAndListen(sock, addr);
+  });
 }
 
 BaseServer::SocketFD
 BaseServer::CreateClient(const std::string &host, const int &port){
-  using namespace std::placeholders;
-  return CreateSocket(host, port, std::bind(&BaseServer::Connect,*this,_1,_2));
+  return CreateSocket(host, port, [this](SocketFD sock, const addrinfo& addr) -> bool{
+    return this->Connect(sock, addr);
+  });
 }
 
 bool BaseServer::Connect(SocketFD sock, const addrinfo& addr){

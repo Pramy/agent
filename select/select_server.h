@@ -6,41 +6,54 @@
 #define AGENT_SELECT_SERVER_H
 
 #include "base_server.h"
+
+#include <sys/select.h>
+#include <fcntl.h>
+
+#include <set>
+#include <stdatomic.h>
 #include "context.h"
+
 
 class SelectServer :  public BaseServer{
 
 public:
   SelectServer(std::string host, int port);
+  SelectServer();
+  SelectServer(const SelectServer &);
 
-  void Start();
-//
-  void Stop();
-
-  SocketFD CreateClient(const std::string &h, const int &p) override;
-
+  virtual void Start();
+  virtual void Stop();
+  void CloseAll();
   bool Connect(SocketFD sock, const addrinfo &addr) override;
-
   bool ReadIntoChannel(Channel &channel,
                        Channel &other,
-                       fd_set &read_set ,
-                       fd_set &rset,
-                       fd_set &wset);
-
+                       fd_set &read_set);
   bool WriteFromChannel(Channel &channel,
                         Channel &other,
-                        fd_set &write_set ,
-                        fd_set &rset,
-                        fd_set &wset);
+                        fd_set &write_set);
+  void CASSetRunning(bool res);
+  void CloseChannel(Channel &channel, Channel&other);
 
-protected:
+  Context &GetContext();
+  const std::atomic<bool> &GetRunning() const;
+  const fd_set &GetRset() const;
+  const fd_set &GetWset() const;
+  int GetMaxFd() const;
+  const std::string &GetHost() const;
+  int GetPort() const;
 
+  void SetMaxFd(int i);
+
+ protected:
   void SetNoBlocking(int socket_fd);
-
+  fd_set rset;
+  fd_set wset;
+  int max_fd;
   Context context;
   std::string host;
   int port;
-  volatile bool running ;
+  std::atomic<bool> running;
 };
 
 #endif // AGENT_SELECT_SERVER_H

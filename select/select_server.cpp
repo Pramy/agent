@@ -4,16 +4,21 @@
 
 #include "select_server.h"
 
-#include <cstdio>
-#include <fcntl.h>
-#include <set>
-#include <sys/select.h>
-#include <utility>
-SelectServer::SelectServer(std::string host, int port):
-    host(std::move(host)), port(port) ,context(), running(false) {
+SelectServer::SelectServer() : rset(), wset(), context(), running(false){
+  FD_ZERO(&rset);
+  FD_ZERO(&wset);
   this->AddAfterCreateTasks([this](int socket_fd){
     this->SetNoBlocking(socket_fd);
   });
+}
+SelectServer::SelectServer(const SelectServer &server): rset(server.rset), wset(server.wset)
+, context(server.context), running(server.running.load()) {
+
+}
+
+SelectServer::SelectServer(std::string host, int port): SelectServer() {
+  this->host = std::move(host);
+  this->port = port;
 }
 
 void SelectServer::Start() {
@@ -21,12 +26,12 @@ void SelectServer::Start() {
   if (listen_fd == ERROR_SOCKET) {
     std::cout << "listen error" << std::endl;
   }
-  running = true;
-  fd_set rset, wset;
-  FD_ZERO(&rset);
-  FD_ZERO(&wset);
+  CASSetRunning(true);
+//  fd_set rset, wset;
+//  FD_ZERO(&rset);
+//  FD_ZERO(&wset);
   FD_SET(listen_fd, &rset);
-  int max_fd = listen_fd;
+  max_fd = listen_fd;
   while (running) {
     fd_set read_set = rset;
     fd_set write_set = wset;
@@ -65,17 +70,17 @@ void SelectServer::Start() {
       << ":"<< FD_ISSET(channel->client.fd, &write_set)<< std::endl;
       std::cout << " remote :"<< channel->des.fd << " :" << FD_ISSET(channel->des.fd, &read_set)
       << ":"<< FD_ISSET(channel->client.fd, &write_set)<< std::endl;
-      if (!ReadIntoChannel(channel->client, channel->des, read_set, rset, wset)) {
+      if (!ReadIntoChannel(channel->client, channel->des, read_set)) {
         remove_fd.insert(channel->client.fd);
       }
-      if (!WriteFromChannel(channel->des, channel->client, write_set, rset, wset)) {
+      if (!WriteFromChannel(channel->des, channel->client, write_set)) {
         remove_fd.insert(channel->des.fd);
       }
 
-      if (!ReadIntoChannel(channel->des, channel->client, read_set, rset, wset)) {
+      if (!ReadIntoChannel(channel->des, channel->client, read_set)) {
         remove_fd.insert(channel->des.fd);
       }
-      if (!WriteFromChannel(channel->client, channel->des, write_set, rset, wset)) {
+      if (!WriteFromChannel(channel->client, channel->des, write_set)) {
         remove_fd.insert(channel->client.fd);
       }
     }
@@ -89,18 +94,16 @@ void SelectServer::Start() {
       }
     }
   }
+  this->Close(listen_fd);
+  this->CloseAll();
 }
 void SelectServer::Stop() {
-  running = false;
+  CASSetRunning(false);
 }
 void SelectServer::SetNoBlocking(int socket_fd) {
   fcntl(socket_fd, F_SETFL, fcntl(socket_fd, F_SETFL, 0) | O_NONBLOCK);
 }
-BaseServer::SocketFD SelectServer::CreateClient(const std::string &h,
-                                                const int &p) {
-  using namespace std::placeholders;
-  return CreateSocket(h, p, std::bind(&SelectServer::Connect,*this,_1,_2));
-}
+
 bool SelectServer::Connect(BaseServer::SocketFD sock, const addrinfo &addr) {
   int ret = ::connect(sock, addr.ai_addr, static_cast<socklen_t>(addr.ai_addrlen));
   if (ret == -1) {
@@ -111,19 +114,20 @@ bool SelectServer::Connect(BaseServer::SocketFD sock, const addrinfo &addr) {
 
 bool SelectServer::ReadIntoChannel(Channel &channel,
                                    Channel &other,
-                                   fd_set &read_set,
-                                   fd_set &rset,
-                                   fd_set &wset) {
+                                   fd_set &read_set) {
   if (FD_ISSET(channel.fd, &read_set) && !channel.closed) {
     if (other.buffer->IsReadable()) {
       int len = other.buffer->Read(channel.fd);
       if (len <= 0 && errno != EAGAIN) {
         printf("fd: %d read error, len:%d, error: %d\n", channel.fd,
                len, errno);
-        this->Close(channel.fd);
-        channel.closed = true;
-        FD_CLR(channel.fd, &rset);
-        FD_CLR(channel.fd, &wset);
+//        this->Close(channel.fd);
+//        channel.closed = true;
+//        FD_CLR(channel.fd, &rset);
+//        FD_CLR(channel.fd, &wset);
+//        FD_CLR(channel.fd, &rset);
+//        FD_CLR(channel.fd, &wset);
+        CloseChannel(channel, other);
         return false;
       } else {
         std::cout << "recv client msg\n"
@@ -139,20 +143,20 @@ bool SelectServer::ReadIntoChannel(Channel &channel,
 }
 bool SelectServer::WriteFromChannel(Channel &channel,
                                     Channel &other,
-                                    fd_set &write_set,
-                                    fd_set &rset,
-                                    fd_set &wset) {
+                                    fd_set &write_set) {
   if (FD_ISSET(channel.fd, &write_set)) {
     if (channel.buffer->IsWriteable()) {
       int len = channel.buffer->Write(channel.fd);
       if (len <= 0 && errno != EAGAIN) {
         printf("fd: %d wirte error, len:%d, error: %d\n", channel.fd, len , errno);
-        this->Close(channel.fd);
-        channel.closed = true;
-        FD_CLR(channel.fd, &rset);
-        FD_CLR(channel.fd, &wset);
+//        this->Close(channel.fd);
+//        channel.closed = true;
+//        FD_CLR(channel.fd, &rset);
+//        FD_CLR(channel.fd, &wset);
+        CloseChannel(channel, other);
         return false;
       }
+      std::cout << "is empty" << channel.buffer->IsEmpty() << std::endl;
       FD_SET(channel.fd, &rset);
       if (channel.buffer->IsEmpty()) {
         FD_CLR(channel.fd, &wset);
@@ -160,5 +164,49 @@ bool SelectServer::WriteFromChannel(Channel &channel,
     }
   }
   return true;
+}
+void SelectServer::CASSetRunning(bool res) {
+  bool exp = running.load();
+  while (!running.compare_exchange_strong(exp, res));
+}
+void SelectServer::CloseAll() {
+  for (const auto &item : context) {
+    this->Close(item.second->des.fd);
+    this->Close(item.second->client.fd);
+  }
+}
+void SelectServer::CloseChannel(Channel &channel, Channel&other){
+  this->Close(channel.fd);
+  this->Close(other.fd);
+  channel.closed = true;
+  other.closed = true;
+  FD_CLR(channel.fd, &rset);
+  FD_CLR(channel.fd, &wset);
+  FD_CLR(other.fd, &rset);
+  FD_CLR(other.fd, &wset);
+}
+Context &SelectServer::GetContext(){
+  return context;
+}
+const std::atomic<bool> &SelectServer::GetRunning() const {
+  return running;
+}
+const fd_set &SelectServer::GetRset() const {
+  return rset;
+}
+const fd_set &SelectServer::GetWset() const {
+  return wset;
+}
+int SelectServer::GetMaxFd() const {
+  return max_fd;
+}
+const std::string &SelectServer::GetHost() const {
+  return host;
+}
+int SelectServer::GetPort() const {
+  return port;
+}
+void SelectServer::SetMaxFd(int i) {
+  SelectServer::max_fd = i;
 }
 

@@ -11,13 +11,9 @@
 #include "buffer.h"
 
 class Channel {
-  friend class ChannelContext;
-  friend class Context;
-  friend class SelectServer;
 
 public:
   explicit Channel(int fd, int size);
-private:
   int fd;
   bool closed;
   std::shared_ptr<Buffer> buffer;
@@ -25,8 +21,6 @@ private:
 };
 
 class ChannelContext {
-  friend class Context;
-  friend class SelectServer;
 
 public:
   ChannelContext(int client, int des, int buffer_size);
@@ -36,7 +30,6 @@ public:
   Channel getDes() const;
   bool IsSingle();
 
-private:
   Channel client;
   Channel des;
 };
@@ -58,7 +51,6 @@ public:
 
   ChannelMap::const_iterator end() const;
 
-private:
   ChannelMap client_to_des;
   ChannelMap des_to_client;
 };
