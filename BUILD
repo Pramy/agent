@@ -9,6 +9,7 @@ cc_binary(
     name = "select_multi_server_run",
     srcs = ["select/thread/main.cpp"],
     deps = [":select_multi_server"],
+    linkopt = ["-pthread"]
 )
 cc_library(
     name = "select_multi_server",

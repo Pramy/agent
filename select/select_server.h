@@ -11,7 +11,7 @@
 #include <fcntl.h>
 
 #include <set>
-#include <stdatomic.h>
+#include <atomic>
 #include "context.h"
 
 

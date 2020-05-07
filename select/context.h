@@ -28,10 +28,11 @@ public:
 
   Channel getClient() const;
   Channel getDes() const;
-  bool IsSingle();
 
+  bool IsConnected();
   Channel client;
   Channel des;
+
 };
 
 class Context{

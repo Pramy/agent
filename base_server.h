@@ -42,6 +42,10 @@ public:
 
   virtual int Close(SocketFD socket_fd);
 
+  bool IsTowPower(unsigned &i);
+
+  unsigned &AdjustSize(unsigned &i);
+
   void AddAfterCreateTasks(const SocketCallFun &fn);
 
   void AddAfterAcceptTasks(const SocketCallFun &fn);

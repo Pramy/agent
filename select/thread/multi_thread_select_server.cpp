@@ -36,7 +36,8 @@ void MultiThreadSelectServer::Start() {
           std::cout << "accept error" << std::endl;
         }
 
-        int remote_fd = this->CreateClient("www.baidu.com", 80);
+//        int remote_fd = this->CreateClient("www.baidu.com", 80);
+        int remote_fd = this->CreateClient("localhost", 1234);
         if (remote_fd == ERROR_SOCKET) {
           std::cout << "connect error" << std::endl;
           this->Close(client_fd);
@@ -69,7 +70,7 @@ void MultiThreadSelectServer::Start() {
 
 }
 MultiThreadSelectServer::MultiThreadSelectServer(const std::string &host, int port, unsigned thread_count)
-  : SelectServer(host, port), child(thread_count == 0? std::thread::hardware_concurrency() * 2 + 1 : AdjustSize(thread_count), ChildThread()),
+  : SelectServer(host, port), child(thread_count == 0? std::thread::hardware_concurrency() * 2 + 1 : BaseServer::AdjustSize(thread_count), ChildThread()),
   child_sum(thread_count == 0? std::thread::hardware_concurrency() * 2 + 1 : thread_count), index(0){
 }
 void MultiThreadSelectServer::Stop() {
@@ -81,24 +82,6 @@ void MultiThreadSelectServer::Stop() {
 inline
 std::vector<ChildThread>::iterator MultiThreadSelectServer::NextChild() {
   return child.begin() + (index++ & child_sum - 1);
-}
-
-inline
-bool MultiThreadSelectServer::IsTowPower(unsigned &i) {
-  return (i & -i) == i;
-}
-
-inline
-unsigned &MultiThreadSelectServer::AdjustSize(unsigned &i) {
-  if (!IsTowPower(i)) {
-    i--;
-    i |= i >> 1u;
-    i |= i >> 2u;
-    i |= i >> 4u;
-    i |= i >> 8u;
-    i |= i >> 16u;
-  }
-  return i;
 }
 
 ChildThread::ChildThread():SelectServer(),tasks(new boost::lockfree::spsc_queue<Task>(1024)){}

@@ -13,16 +13,20 @@ Channel ChannelContext::getClient() const { return client; }
 
 Channel ChannelContext::getDes() const { return des; }
 
-bool ChannelContext::IsSingle() {
-  return client.fd == des.fd;
+bool ChannelContext::IsConnected() {
+  return des.fd > 0 ;
 }
 
 Context::Context() : client_to_des(), des_to_client() {}
 
 void Context::AddChannel(const ChannelContext &channel) {
   auto item = std::make_shared<ChannelContext>(channel);
-  client_to_des.emplace(channel.client.fd, item);
-  des_to_client.emplace(channel.des.fd, item);
+  if (item->client.fd > 0) {
+    client_to_des.emplace(channel.client.fd, item);
+  }
+  if (item->des.fd > 0) {
+    des_to_client.emplace(channel.des.fd, item);
+  }
 }
 
 std::shared_ptr<ChannelContext> Context::GetChannel(int socket_fd) {

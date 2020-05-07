@@ -1,66 +1,26 @@
 //
-// Created by tuffy on 2020/4/23.
+// Created by tuffy on 2020/5/6.
 //
-#include <sys/select.h>
 
 #include <iostream>
-#include <functional>
-#include <map>
 #include <memory>
-#include <thread>
-#include <csignal>
-#include <vector>
-
-#include "base_server.h"
-//#include <boost/atomic.hpp>
-#include <boost/lockfree/spsc_queue.hpp>
-
-#define PRINT(a) (std::cout << a << std::endl)
-
+#include <boost/optional.hpp>
 using namespace std;
-class Test {
+
+class B {
  public:
-  Test(int a) : a(a) {}
-  int a = 0;
+ std::shared_ptr<int> int_ptr;
+ int i = 0;
 };
-class A {
- public:
-
-  A(int i) : t(i) {};
-
-  virtual void print();
-  void work(const function<void()> &fun){
-    fun();
-  }
-  const Test &GetT() const;
-  Test t;
-};
-boost::lockfree::spsc_queue<int> kQueue(3);
-void A::print() {
-  PRINT(t.a);
-  t.a = 100;
-}
-const Test &A::GetT() const {
-  return t;
-}
-class B : public A {
-
- public:
-  void print() override {
-    PRINT("b");
-  }
-};
-
-void print(int signal){
-  PRINT(std::this_thread::get_id());
+int &tt(const B &b) {
+  return const_cast<int&>(b.i);
 }
 
-
-
-#define WAKE 255
-void test(Test &t){
-  t.a = 10000;
-}
-int main(){
-  A a(1);
+int main() {
+  boost::optional<B> op;
+  cout << op.has_value() <<endl;
+  op.emplace(B());
+  op.;
+  op->i = 1;
+  cout << op->i <<endl;
 }

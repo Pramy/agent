@@ -32,8 +32,6 @@ class MultiThreadSelectServer : public SelectServer {
 
   void Stop() override;
   std::vector<ChildThread>::iterator NextChild();
-  bool IsTowPower(unsigned &i);
-  unsigned &AdjustSize(unsigned &i);
 
  protected:
   std::vector<ChildThread> child;

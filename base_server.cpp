@@ -137,3 +137,19 @@ void BaseServer::RunAllTasks(const std::vector<T> &tasks, Args... args) {
     item(args...);
   }
 }
+
+bool BaseServer::IsTowPower(unsigned &i) {
+  return (i & -i) == i;
+}
+
+unsigned &BaseServer::AdjustSize(unsigned &i) {
+  if (!IsTowPower(i)) {
+    i--;
+    i |= i >> 1u;
+    i |= i >> 2u;
+    i |= i >> 4u;
+    i |= i >> 8u;
+    i |= i >> 16u;
+  }
+  return i;
+}
