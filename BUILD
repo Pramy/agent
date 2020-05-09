@@ -9,7 +9,7 @@ cc_binary(
     name = "select_multi_server_run",
     srcs = ["select/thread/main.cpp"],
     deps = [":select_multi_server"],
-    linkopt = ["-pthread"]
+    linkopts = ["-pthread"]
 )
 cc_library(
     name = "select_multi_server",
@@ -26,6 +26,7 @@ cc_library(
     name = "base_server",
     srcs = ["base_server.cpp"],
     hdrs = ["base_server.h"],
+    visibility = ["//visibility:public"]
 )
 
 cc_binary(
@@ -49,6 +50,7 @@ cc_library(
         "select/buffer.h",
         "select/context.h",
     ],
+    visibility = ["//visibility:public"]
 )
 
 cc_library(

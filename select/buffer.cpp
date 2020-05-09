@@ -4,9 +4,6 @@
 
 #include "buffer.h"
 
-#include <cerrno>
-#include <unistd.h>
-
 Buffer::Buffer(int maxLen) : max_len(maxLen) {
   data = new char[maxLen];
   Reset();
@@ -18,26 +15,21 @@ Buffer::~Buffer() {
   write_index = nullptr;
 }
 
-//inline
 bool Buffer::IsReadable() {
   return read_index - data <  max_len;
 }
 
-//inline
 bool Buffer::IsWriteable() {
   return write_index < read_index;
 }
 
-inline
 bool Buffer::IsEmpty() {
   return write_index == read_index;
 }
 
-inline
 void Buffer::Reset() {
   read_index = write_index = data;
 }
-
 char *Buffer::GetReadIndex() const { return read_index; }
 bool Buffer::SetReadIndex(char *index) {
   if (index< data || index < write_index || index >= data + max_len) {
@@ -73,3 +65,26 @@ int Buffer::Write(int socket_fd) {
 }
 int Buffer::GetSize() { return read_index - write_index; }
 bool Buffer::IsFull() { return read_index == write_index && write_index != data; }
+int Buffer::Write(char *des, int len) {
+  if (!IsWriteable()) {
+    return 0;
+  }
+  int size = GetSize();
+  len = size < len ? size : len;
+  strncpy(des, write_index, len);
+  write_index += len;
+  if (IsEmpty()) {
+    Reset();
+  }
+  return len;
+}
+int Buffer::Read(const char *src, int len) {
+  if (!IsReadable()) {
+    return 0;
+  }
+  int size = data + max_len - read_index;
+  len = size < len ? size : len;
+  strncpy(read_index, src, len);
+  read_index += len;
+  return len;
+}

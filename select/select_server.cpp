@@ -62,7 +62,7 @@ void SelectServer::Start() {
 
       // todo echo
       ChannelContext client_t(client_fd, remote_fd, 1024);
-      context.AddChannel(client_t);
+      context.AddChannelContext(client_t);
     }
     for (const auto & i : context) {
       auto channel = i.second;

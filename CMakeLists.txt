@@ -18,7 +18,7 @@ set(select_multi_server select/thread/multi_thread_select_server.cpp select/thre
         ${select_single_server})
 
 add_executable(select_multi_server_run select/thread/main.cpp ${select_multi_server})
-add_executable(test test.cpp)
+add_executable(test test.cpp ${common})
 
 set(epoll_server epoll/epoll_server.h epoll/epoll_server.cpp ${select_single_server})
 add_executable(epoll_server_run epoll/main.cpp ${epoll_server})

@@ -46,7 +46,7 @@ void MultiThreadSelectServer::Start() {
         auto fn = [client_fd, remote_fd](ChildThread& child_thread){
           std::cout << "call" << std::endl;
           const ChannelContext client_t(client_fd, remote_fd, 1024);
-          child_thread.GetContext().AddChannel(client_t);
+          child_thread.GetContext().AddChannelContext(client_t);
           auto &rset = child_thread.GetRset();
           auto &wset = child_thread.GetRset();
           FD_SET(client_fd, &const_cast<fd_set&>(rset));
@@ -70,8 +70,11 @@ void MultiThreadSelectServer::Start() {
 
 }
 MultiThreadSelectServer::MultiThreadSelectServer(const std::string &host, int port, unsigned thread_count)
-  : SelectServer(host, port), child(thread_count == 0? std::thread::hardware_concurrency() * 2 + 1 : BaseServer::AdjustSize(thread_count), ChildThread()),
-  child_sum(thread_count == 0? std::thread::hardware_concurrency() * 2 + 1 : thread_count), index(0){
+  : SelectServer(host, port){
+  thread_count = thread_count == 0 ? std::thread::hardware_concurrency() * 2 + 1 : BaseServer::AdjustSize(thread_count);
+  child = decltype(child)(thread_count, ChildThread());
+  child_sum = thread_count;
+  index = 0;
 }
 void MultiThreadSelectServer::Stop() {
   for (auto &item : child) {

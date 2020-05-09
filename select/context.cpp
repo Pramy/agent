@@ -19,7 +19,7 @@ bool ChannelContext::IsConnected() {
 
 Context::Context() : client_to_des(), des_to_client() {}
 
-void Context::AddChannel(const ChannelContext &channel) {
+void Context::AddChannelContext(const ChannelContext &channel) {
   auto item = std::make_shared<ChannelContext>(channel);
   if (item->client.fd > 0) {
     client_to_des.emplace(channel.client.fd, item);
@@ -29,7 +29,7 @@ void Context::AddChannel(const ChannelContext &channel) {
   }
 }
 
-std::shared_ptr<ChannelContext> Context::GetChannel(int socket_fd) {
+std::shared_ptr<ChannelContext> Context::GetChannelContext(int socket_fd) {
   auto res = client_to_des.find(socket_fd);
   if (res != client_to_des.end()){
     return res->second;
@@ -41,7 +41,7 @@ std::shared_ptr<ChannelContext> Context::GetChannel(int socket_fd) {
   return nullptr;
 }
 std::shared_ptr<ChannelContext> Context::RemoveChannel(int socket_fd) {
-  auto item = GetChannel(socket_fd);
+  auto item = GetChannelContext(socket_fd);
   if(nullptr == item){
     return nullptr;
   }

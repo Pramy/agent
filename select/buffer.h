@@ -4,7 +4,8 @@
 
 #ifndef AGENT_BUFFER_H
 #define AGENT_BUFFER_H
-
+#include <unistd.h>
+#include <cstring>
 class Buffer {
 
 public:
@@ -18,7 +19,9 @@ public:
   void Reset();
 
   int Read(int socket_fd);
+  int Read(const char *src, int len);
   int Write(int socket_fd);
+  int Write(char *des, int len);
 
   char *GetReadIndex() const;
   bool SetReadIndex(char *index);

@@ -42,9 +42,9 @@ public:
 
   Context();
 
-  void AddChannel(const ChannelContext &channel);
+  void AddChannelContext(const ChannelContext &channel);
 
-  std::shared_ptr<ChannelContext> GetChannel(int socket_fd);
+  std::shared_ptr<ChannelContext> GetChannelContext(int socket_fd);
 
   std::shared_ptr<ChannelContext> RemoveChannel(int socket_fd);
 

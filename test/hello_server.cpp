@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <map>
 
 using namespace std;
 
@@ -30,12 +31,14 @@ int main() {
   epoll_ctl(ep, EPOLL_CTL_ADD, server, &ev);
 
 
-  int size = 20;
+  int  size = 20;
   epoll_event events[size];
+  map<int, pair<int, char*>> mpp;
   while (true) {
     int sum = epoll_wait(ep, events, size, 1000);
     for (int i = 0; i < sum; i++) {
-      if (server == events[i].data.fd) {
+      int fd = events[i].data.fd;
+      if (server == fd) {
         sockaddr_in client_addr;
         socklen_t len = 0;
         int client = accept(server,reinterpret_cast<sockaddr *>(&client_addr), &len);
@@ -45,31 +48,41 @@ int main() {
         char *str = inet_ntoa(client_addr.sin_addr);
         std::cout << "accept client new :" << str << "fd:" << client << endl;;
         ev.data.fd = client;
-        ev.events = EPOLLIN;
+        ev.events = EPOLLIN| EPOLLOUT;
         epoll_ctl(ep, EPOLL_CTL_ADD, client, &ev);
         // }
       } else if (events[i].events & EPOLLIN) {
-        int n, size = 1024;
-        char buff[size];
-        n = recv(events[i].data.fd, buff, size, 0);
+        if (mpp[fd].second == nullptr) {
+          mpp[fd] = make_pair(0,new char[1024]);
+        }
+        mpp[fd].first = recv(fd, mpp[fd].second, 1024, 0);
+        int n = mpp[fd].first;
         if (n == EAGAIN) {
           continue;
         }
         if (n == 0) {
-          cout << "close :" << events[i].data.fd << endl;
-          close(events[i].data.fd);
+          cout << "close :" << fd << endl;
+          close(fd);
+          epoll_ctl(ep, EPOLL_CTL_DEL ,fd,events+i);
           continue;
         }
-        buff[n] = '\0';
-        cout << "read :" << buff << endl;
-        cout << events[i].data.fd << endl;
+        mpp[fd].second[n] = '\0';
+        cout << "read :" << mpp[fd].second << endl;
+        cout << fd << endl;
 
-        std::string msg = "hello world\n";
-        cout << msg << endl;
-        send(events[i].data.fd, msg.c_str(), msg.size(), 0);
+      } else if (events[i].events & EPOLLOUT) {
+        if (mpp[fd].second == nullptr) {
+          mpp[fd] = make_pair(0,new char[1024]);
+        }
+        if (mpp[fd].first > 0) {
+          cout << "write event, msg:" << std::string(mpp[fd].second, mpp[fd].first) << endl;
+          send(fd, mpp[fd].second, mpp[fd].first, 0);
+          mpp[fd].first = 0;
+        }
       }
     }
   }
+  close(server);
 }
 //
 // Created by pramy on 2020/5/4.
@@ -156,7 +169,7 @@ int main() {
 //     //处理所发生的所有事件
 //     for (i = 0; i < nfds; ++i) {
 //       //如果新监测到一个SOCKET用户连接到了绑定的SOCKET端口，建立新的连接。
-//       if (events[i].data.fd == listenfd) {
+//       if (fd == listenfd) {
 //         connfd = accept(listenfd, (sockaddr *)&clientaddr, &clilen);
 //         if (connfd < 0) {
 //           perror("connfd < 0");
@@ -178,7 +191,7 @@ int main() {
 //       //如果是已经连接的用户，并且收到数据，那么进行读入。
 //       // else if (events[i].events & EPOLLIN) {
 //       //   cout << "EPOLLIN" << endl;
-//       //   if ((sockfd = events[i].data.fd) < 0)
+//       //   if ((sockfd = fd) < 0)
 //       //     continue;
 //       //   if ((n = recv(sockfd, line, sizeof(line), 0)) < 0) {
 //       //     // Connection
@@ -186,13 +199,13 @@ int main() {
 //       //     Reset:你连接的那一端已经断开了，而你却还试着在对方已断开的socketfd上读写数据！
 //       //     if (errno == ECONNRESET) {
 //       //       close(sockfd);
-//       //       events[i].data.fd = -1;
+//       //       fd = -1;
 //       //     } else
 //       //       std::cout << "readline error" << std::endl;
 //       //   } else if (n == 0) //读入的数据为空
 //       //   {
 //       //     close(sockfd);
-//       //     events[i].data.fd = -1;
+//       //     fd = -1;
 //       //   }
 //       //   cout << "errno :" << errno << ",n :" << n << endl;
 //       //   szTemp = "";
@@ -215,7 +228,7 @@ int main() {
 //       // } else if (events[i].events & EPOLLOUT) // 如果有数据发送
 
 //       // {
-//       //   sockfd = events[i].data.fd;
+//       //   sockfd = fd;
 //       //   szTemp = "Server:" + szTemp + "\n";
 //       //   send(sockfd, szTemp.c_str(), szTemp.size(), 0);
 
