@@ -6,6 +6,7 @@
 #define AGENT_EPOLL_EPOLL_SERVER_H_
 #include <sys/epoll.h>
 #include <fcntl.h>
+#include <sys/sendfile.h>
 
 #include <thread>
 #include <boost/lockfree/spsc_queue.hpp>

@@ -37,7 +37,6 @@ EpollBase::~EpollBase() {
 }
 
 bool EpollBase::Read(Channel &self, Channel &other) {
-
   if (self.fd > 0 && !self.closed && other.buffer->IsReadable()) {
     int len = other.buffer->Read(self.fd);
     if (len <= 0 && errno != EAGAIN) {

@@ -7,6 +7,8 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <sys/sendfile.h>
+#include <fcntl.h>
 
 using namespace std;
 
@@ -55,10 +57,24 @@ int main() {
         if (mpp[fd].second == nullptr) {
           mpp[fd] = make_pair(0,new char[1024]);
         }
-        mpp[fd].first = recv(fd, mpp[fd].second, 1024, 0);
-        int n = mpp[fd].first;
-        if (n == EAGAIN) {
-          continue;
+//        int file  = open("/home/tuffychen/1.txt",O_RDWR);
+//        sendfile(fd,fd, nullptr, 1024);
+//        mpp[fd].first = recv(fd, mpp[fd].second, 1024, 0);
+//        int n = mpp[fd].first;
+//        int n = sendfile(fd,file, nullptr, 1024);
+//        cout << "hello" <<file <<endl;
+//        int n = sendfile(fd,file, nullptr, 1024);
+        int pipefd[2];
+        pipe(pipefd);
+        splice(fd, nullptr, pipefd[1], nullptr, 1024,SPLICE_F_MORE);
+        int n = splice(pipefd[0], nullptr, fd, nullptr, 1024,SPLICE_F_MORE);
+//        splice(pipefd[0], NULL, connfd[1], NULL, 4096,SPLICE_F_MORE);
+//        int n = splice(file,nullptr,fd, nullptr, 1024, SPLICE_F_NONBLOCK);
+        if (n == -1) {
+          if (errno == EAGAIN) {
+            continue;
+          }
+          cout << errno <<endl;
         }
         if (n == 0) {
           cout << "close :" << fd << endl;
@@ -69,7 +85,9 @@ int main() {
         mpp[fd].second[n] = '\0';
         cout << "read :" << mpp[fd].second << endl;
         cout << fd << endl;
-
+        cout << "close :" << fd << endl;
+//        close(fd);
+        epoll_ctl(ep, EPOLL_CTL_DEL ,fd,events+i);
       } else if (events[i].events & EPOLLOUT) {
         if (mpp[fd].second == nullptr) {
           mpp[fd] = make_pair(0,new char[1024]);
