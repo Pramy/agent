@@ -86,12 +86,8 @@ void SelectServer::Start() {
     }
     for (const auto &item : remove_fd) {
       auto ptr = context.RemoveChannel(item);
-      if (!ptr->client.closed){
-        this->Close(ptr->client.fd);
-      }
-      if (!ptr->des.closed){
-        this->Close(ptr->client.fd);
-      }
+      this->Close(ptr->client.fd);
+      this->Close(ptr->des.fd);
     }
   }
   this->Close(listen_fd);
@@ -115,28 +111,20 @@ bool SelectServer::Connect(BaseServer::SocketFD sock, const addrinfo &addr) {
 bool SelectServer::ReadIntoChannel(Channel &channel,
                                    Channel &other,
                                    fd_set &read_set) {
-  if (FD_ISSET(channel.fd, &read_set) && !channel.closed) {
-    if (other.buffer->IsReadable()) {
-      int len = other.buffer->Read(channel.fd);
-      if (len <= 0 && errno != EAGAIN) {
-        printf("fd: %d read error, len:%d, error: %d\n", channel.fd,
-               len, errno);
-//        this->Close(channel.fd);
-//        channel.closed = true;
-//        FD_CLR(channel.fd, &rset);
-//        FD_CLR(channel.fd, &wset);
-//        FD_CLR(channel.fd, &rset);
-//        FD_CLR(channel.fd, &wset);
-        CloseChannel(channel, other);
-        return false;
-      } else {
-        std::cout << "recv client msg\n"
-                  << std::string(other.buffer->GetWriteIndex(),
-                                 other.buffer->GetSize())
-                  << std::endl;
-        std::cout<< "notice write:" << other.fd << std::endl;
-        FD_SET(other.fd, &wset);
-      }
+  if (FD_ISSET(channel.fd, &read_set) && other.buffer->IsReadable()) {
+    int len = other.buffer->Read(channel.fd);
+    if (len <= 0 && errno != EAGAIN) {
+      printf("fd: %d read error, len:%d, error: %d\n", channel.fd,
+             len, errno);
+      CloseChannel(channel, other);
+      return false;
+    } else {
+      std::cout << "recv client msg\n"
+                << std::string(other.buffer->GetWriteIndex(),
+                               other.buffer->GetSize())
+                << std::endl;
+      std::cout<< "notice write:" << other.fd << std::endl;
+      FD_SET(other.fd, &wset);
     }
   }
   return true;
@@ -178,8 +166,6 @@ void SelectServer::CloseAll() {
 void SelectServer::CloseChannel(Channel &channel, Channel&other){
   this->Close(channel.fd);
   this->Close(other.fd);
-  channel.closed = true;
-  other.closed = true;
   FD_CLR(channel.fd, &rset);
   FD_CLR(channel.fd, &wset);
   FD_CLR(other.fd, &rset);

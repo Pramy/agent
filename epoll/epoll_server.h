@@ -16,7 +16,8 @@
 
 #include "base_server.h"
 #include "select/context.h"
-#include "epoll/decoder.h"
+#include "channal_pipe_context.h"
+#include "decoder.h"
 
 using std::shared_ptr;
 using std::vector;
@@ -30,18 +31,18 @@ class EpollBase : public BaseServer {
 
   int Close(SocketFD socket_fd) override;
   bool Connect(SocketFD sock, const addrinfo &addr) override;
-  bool Read(Channel &self, Channel &other);
-  bool Write(Channel &self, Channel &other);
+  bool Read(Channel &self, Channel &other, const ChannelPipeContext& pipe_context);
+  bool Write(Channel &self, Channel &other, const ChannelPipeContext& pipe_context);
   bool Connect(Channel &client, Channel &remote);
   virtual void Start() = 0;
   virtual void Stop() = 0;
-  void AddChannelContext(ChannelContext *item);
+  void AddChannelContext(ChannelPipeContext *item);
   void EpollCtl(SocketFD socket_fd, int ctl_opt, epoll_event *event);
 
   void SetDecoder(const std::shared_ptr<Decoder> &decoder);
   const std::atomic<bool> &GetRunning() const;
  protected:
-  unordered_map<SocketFD, shared_ptr<ChannelContext>> context;
+  unordered_map<SocketFD, shared_ptr<ChannelPipeContext>> context;
   std::shared_ptr<Decoder> decoder;
  protected:
   int epoll_fd;

@@ -133,12 +133,8 @@ void ChildThread::Start() {
       for (const auto &item : remove_fd) {
         std::cout << "remove:" << item << std::endl;
         auto ptr = context.RemoveChannel(item);
-        if (!ptr->client.closed){
-          this->Close(ptr->client.fd);
-        }
-        if (!ptr->des.closed){
-          this->Close(ptr->client.fd);
-        }
+        this->Close(ptr->client.fd);
+        this->Close(ptr->des.fd);
       }
     }
     this->CloseAll();

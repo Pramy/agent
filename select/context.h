@@ -15,7 +15,6 @@ class Channel {
 public:
   explicit Channel(int fd, int size);
   int fd;
-  bool closed;
   std::shared_ptr<Buffer> buffer;
 
 };
@@ -23,16 +22,15 @@ public:
 class ChannelContext {
 
 public:
-  ChannelContext(int client, int des, int buffer_size);
   ChannelContext(const ChannelContext &) = default;
 
-  Channel getClient() const;
-  Channel getDes() const;
+  ChannelContext(int client, int client_size, int des, int des_size): client(client, client_size), des(des, des_size) {}
 
-  bool IsConnected();
+  ChannelContext(int client, int des, int buffer_size):ChannelContext(client, buffer_size, des, buffer_size){ };
+
+  bool IsConnected() const ;
   Channel client;
   Channel des;
-
 };
 
 class Context{

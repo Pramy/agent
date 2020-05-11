@@ -39,13 +39,30 @@ class C : public B {
 std::shared_ptr<B> test() {
   return std::make_shared<C>(10);
 }
+class E {
+ public:
+  E(int i) : i(i) {}
+  int i;
+
+  virtual void print(){
+    cout << "E" << endl;
+  }
+};
+
+class F : public E {
+ public:
+  F(int i) : E(i) {}
+  void print() override {
+    cout << "F" << endl;
+  }
+};
+bool test(int& i){
+  i++;
+  return false;
+}
 
 int main() {
-  vector<shared_ptr<B>> vcc(3);
-  for (int kI = 0; kI < 3; ++kI){
-    vcc[kI] = make_shared<B>();
-  }
-  decltype(vcc) vbb;
-  vbb.swap(vcc);
-  cout << vcc.size() <<endl;
+  int i = 0;
+  bool flag = test(i) & test(i);
+  cout <<i  << endl;
 }

@@ -4,16 +4,9 @@
 
 #include "context.h"
 
-Channel::Channel(int fd, int size) : fd(fd), closed(false), buffer(new Buffer(size)) {}
+Channel::Channel(int fd, int size) : fd(fd), buffer(new Buffer(size)) {}
 
-ChannelContext::ChannelContext(int client, int des, int buffer_size) :
-                  client(client, buffer_size), des(des, buffer_size){}
-
-Channel ChannelContext::getClient() const { return client; }
-
-Channel ChannelContext::getDes() const { return des; }
-
-bool ChannelContext::IsConnected() {
+bool ChannelContext::IsConnected() const {
   return des.fd > 0 ;
 }
 

@@ -20,7 +20,7 @@ set(select_multi_server select/thread/multi_thread_select_server.cpp select/thre
 add_executable(select_multi_server_run select/thread/main.cpp ${select_multi_server})
 add_executable(test test.cpp ${common})
 
-set(epoll_server epoll/epoll_server.h epoll/epoll_server.cpp ${common} ${base_server})
+set(epoll_server epoll/epoll_server.h epoll/epoll_server.cpp ${common} ${base_server} epoll/channal_pipe_context.cpp epoll/channal_pipe_context.h)
 add_executable(epoll_server_run epoll/main.cpp ${epoll_server})
 
 add_executable(hello_server test/hello_server.cpp)

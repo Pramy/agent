@@ -7,7 +7,7 @@
 #include <utility>
 EpollBase::EpollBase() : context(), decoder(new StringTextDecoder()), running(false) {
   this->AddAfterCreateTasks([this](int socket_fd) {
-    fcntl(socket_fd, F_SETFL, fcntl(socket_fd, F_SETFL, 0) | O_NONBLOCK);
+    fcntl(socket_fd, F_SETFL, fcntl(socket_fd, F_GETFL, 0) | O_NONBLOCK);
   });
 }
 EpollBase::EpollBase(int size) : EpollBase() {
@@ -26,9 +26,10 @@ int EpollBase::Close(BaseServer::SocketFD socket_fd) {
   epoll_ctl(epoll_fd, EPOLL_CTL_DEL, item->client.fd, &event);
   event.data.fd = item->des.fd;
   epoll_ctl(epoll_fd, EPOLL_CTL_DEL, item->des.fd, &event);
-  item->client.closed = true;
-  item->des.closed = true;
-  return ::close(item->client.fd) == 0 & ::close(item->des.fd) == 0 ? 0 : -1;
+  bool flag = ::close(item->client.fd) == 0;
+  flag &= ::close(item->des.fd) == 0;
+  flag &=item->Close();
+  return flag ? 0 : -1;
 }
 EpollBase::~EpollBase() {
   if (epoll_fd > 0) {
@@ -36,19 +37,22 @@ EpollBase::~EpollBase() {
   }
 }
 
-bool EpollBase::Read(Channel &self, Channel &other) {
-  if (self.fd > 0 && !self.closed && other.buffer->IsReadable()) {
+bool EpollBase::Read(Channel &self, Channel &other, const ChannelPipeContext& pipe_context) {
+
+  if (!pipe_context.IsConnected() && self.fd > 0 && other.buffer->IsReadable()) {
     int len = other.buffer->Read(self.fd);
     if (len <= 0 && errno != EAGAIN) {
       this->Close(self.fd);
       return false;
     }
+  } else if (pipe_context.IsConnected() && self.fd > 0  && other.fd > 0) {
+    pipe_context.Transform(self, other);
   }
   return true;
 }
 
-bool EpollBase::Write(Channel &self, Channel &other) {
-  if (self.fd > 0 && !self.closed && self.buffer->IsWriteable()) {
+bool EpollBase::Write(Channel &self, Channel &other, const ChannelPipeContext& pipe_context) {
+  if (self.fd > 0  && self.buffer->IsWriteable()) {
     int len = self.buffer->Write(self.fd);
     if (len <= 0 && errno != EAGAIN) {
       this->Close(self.fd);
@@ -89,8 +93,8 @@ bool EpollBase::Connect(Channel &client, Channel &remote) {
   }
   return false;
 }
-void EpollBase::AddChannelContext(ChannelContext *item) {
-  auto ptr = shared_ptr<ChannelContext>(item);
+void EpollBase::AddChannelContext(ChannelPipeContext *item) {
+  auto ptr = shared_ptr<ChannelPipeContext>(item);
   if (item->client.fd > 0){
     context.emplace(item->client.fd, ptr);
   }
@@ -126,13 +130,13 @@ void EpollServerChild::Start() {
         Channel &self = channel_context->client.fd == socket_fd ? channel_context->client : channel_context->des;
         Channel &other = channel_context->client.fd == self.fd ? channel_context->des : channel_context->client;
         if (events.get()[i].events & EPOLLIN) {
-          EpollBase::Read(self, other);
+          EpollBase::Read(self, other, *channel_context);
           if (!channel_context->IsConnected() && EpollBase::Connect(channel_context->client, channel_context->des)) {
             context.emplace(channel_context->des.fd, channel_context);
           }
         }
         if (events.get()[i].events & EPOLLOUT) {
-          EpollBase::Write(self, other);
+          EpollBase::Write(self, other, *channel_context);
         }
       }
     }
@@ -181,7 +185,7 @@ void EpollServerMaster::Start() {
           }
           auto child_shared_ptr = NextChild();
           while (!child_shared_ptr->AddTaskBeforeLoop([client_fd](EpollServerChild &child){
-            child.AddChannelContext(new ChannelContext(client_fd, ERROR_SOCKET, 1024));
+            child.AddChannelContext(new ChannelPipeContext(client_fd, ERROR_SOCKET, 512));
             epoll_event e{};
             e.data.fd = client_fd;
             e.events = EPOLLIN | EPOLLOUT;
